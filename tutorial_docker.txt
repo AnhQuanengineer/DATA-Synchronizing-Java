@@ -1,0 +1,53 @@
+mysql
+//pull image and run container
+docker pull mysql/mysql-server:latest
+docker run -p 3307:3306 --name=mysql1 -d --restart unless-stopped mysql/mysql-server:latest
+//connect mysql docker
+docker logs mysql1 2>&1 | grep GENERATED
+//connect mysql docker
+docker exec -it mysql1 mysql -uroot -p
+//changer local host password
+ALTER USER 'root'@'localhost' IDENTIFIED BY '123';
+//create new user to connect
+CREATE USER 'root'@'172.17.0.1' IDENTIFIED BY '123';
+ALTER USER 'root'@'172.17.0.1' IDENTIFIED BY '123';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'172.17.0.1';
+FLUSH PRIVILEGES;
+//see ip to connect between your code and mysql container
+docker inspect mysql1 | grep IPAddress
+
+mongodb
+//run docker container
+docker run -d \
+  --name mongodb \
+  -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=anhquan \
+  -e MONGO_INITDB_ROOT_PASSWORD=123456 \
+  mongo:latest
+//connect mongo db
+docker exec -it cdf0e2272bc1 mongosh -u anhquan -p 123456
+use github_data;
+show dbs;
+//see schema
+db.getCollectionInfos({name: "Users" })[0].options.validator
+db.getCollectionInfos({name: "Repositories" })[0].options.validator
+
+
+redis
+docker run --name anhquan -d --restart unless-stopped -p 6379:6379 -v /home/victo/PycharmProjects/Big_data_project/lib/redis.acl:/etc/redis/redis.acl redis redis-server --aclfile /etc/redis/redis.acl
+//connect to redis
+docker exec -it anhquan /bin/bash
+redis-cli -h 127.0.0.1 -p 6379
+AUTH anhquan 789
+ACL LIST
+// query to redis
+KEYS *
+GET user:1:login
+MGET user:1:login user:1:gravatar_id user:1:avatar_url user:1:url
+SISMEMBER user_id user:1
+SMEMBERS user_id
+KEYS user:1:*
+
+
+requierments
+pip install -r requirements.txt
