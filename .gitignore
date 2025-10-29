@@ -43,3 +43,8 @@ build/
 # IDE
 .idea
 config.properties*
+logs/
+src/main/resources/json/
+tutorial_docker.txt
+
+
