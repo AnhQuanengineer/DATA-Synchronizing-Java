@@ -1,4 +1,6 @@
 package org.datapipeline.Connector;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.SparkConf;
 import java.util.List;
@@ -9,6 +11,7 @@ import java.util.stream.Collectors;
  * Lớp này quản lý việc tạo và dừng SparkSession, tương đương với lớp SparkConnect trong Python.
  */
 public class SparkConnect {
+    private static final Logger LOG = LogManager.getLogger(SparkConnect.class);
 
     private final String appName;
     private SparkSession spark;
@@ -98,13 +101,14 @@ public class SparkConnect {
             sparkConf.forEach(builder::config);
         }
 
-        SparkSession spark = builder.getOrCreate();
+        spark = builder.getOrCreate();
 
         // Thiết lập mức độ log
         if (logLevel != null && !logLevel.isEmpty()) {
             spark.sparkContext().setLogLevel(logLevel);
         }
 
+        LOG.info("SparkSession '{}' đã được khởi tạo thành công.", appName);
         return spark;
     }
 
@@ -114,8 +118,16 @@ public class SparkConnect {
 
     public void stop() {
         if (this.spark != null) {
-            this.spark.stop();
-            System.out.println("-------------Stop spark session---------------");
+            try {
+                this.spark.stop();
+                LOG.info("SparkSession '{}' đã được dừng thành công.", appName);
+            } catch (Exception e) {
+                LOG.error("Lỗi khi dừng SparkSession: {}", e.getMessage(), e);
+            } finally {
+                this.spark = null;  // Giải phóng reference
+            }
+        } else {
+            LOG.debug("SparkSession đã được dừng từ trước.");
         }
     }
 }

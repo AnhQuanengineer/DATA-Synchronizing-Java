@@ -74,7 +74,8 @@ public class ConfigUtil {
             Map<String, Object> sparkConfig = getSparkConfig();
             System.out.println("Spark Configuration Loaded:");
             // Sử dụng System.out.println() trên Map sẽ in ra chuỗi đại diện
-            System.out.println(sparkConfig);
+            Map<String,Object> mysql = (Map<String, Object>) sparkConfig.get("mysql");
+            System.out.println(mysql);
 
             // Ví dụ khởi tạo SparkConnect (Giả định):
             /*
