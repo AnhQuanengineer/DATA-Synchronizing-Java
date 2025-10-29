@@ -101,15 +101,15 @@ public class SparkConnect {
             sparkConf.forEach(builder::config);
         }
 
-        spark = builder.getOrCreate();
+        SparkSession session = builder.getOrCreate();
 
         // Thiết lập mức độ log
         if (logLevel != null && !logLevel.isEmpty()) {
-            spark.sparkContext().setLogLevel(logLevel);
+            session.sparkContext().setLogLevel(logLevel);
         }
 
         LOG.info("SparkSession '{}' đã được khởi tạo thành công.", appName);
-        return spark;
+        return session;
     }
 
     public SparkSession getSparkSession() {
