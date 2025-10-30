@@ -23,7 +23,7 @@ public class SparkMain {
 
     // Định nghĩa Schema cho actor (StructType)
     private static final StructType ACTOR_SCHEMA = DataTypes.createStructType(new StructField[]{
-            DataTypes.createStructField("id", DataTypes.LongType, true),
+            DataTypes.createStructField("id", DataTypes.IntegerType, true),
             DataTypes.createStructField("login", DataTypes.StringType, true),
             DataTypes.createStructField("gravatar_id", DataTypes.StringType, true),
             DataTypes.createStructField("url", DataTypes.StringType, true),
@@ -32,7 +32,7 @@ public class SparkMain {
 
     // Định nghĩa Schema cho repo (StructType)
     private static final StructType REPO_SCHEMA = DataTypes.createStructType(new StructField[]{
-            DataTypes.createStructField("id", DataTypes.LongType, true),
+            DataTypes.createStructField("id", DataTypes.IntegerType, true),
             DataTypes.createStructField("name", DataTypes.StringType, true),
             DataTypes.createStructField("url", DataTypes.StringType, true)
     });
@@ -118,10 +118,10 @@ public class SparkMain {
         }
 
         SparkWriteData writeDataMySQL= new SparkWriteData(sparkConnect.getSparkSession(), Config);
-        writeDataMySQL.sparkWriteMySQL(userWriteTableDs, "Users", "append");
+        writeDataMySQL.writeAllDatabase(userWriteTableDs, "Users", "append");
 
         SparkWriteData validateDataMySQL= new SparkWriteData(sparkConnect.getSparkSession(), Config);
-        validateDataMySQL.validateSparkMySQL(userWriteTableDs, "Users", "append");
+        validateDataMySQL.valdateAllDatabase(userWriteTableDs, "Users", "append");
 
         sparkConnect.stop();
     }
