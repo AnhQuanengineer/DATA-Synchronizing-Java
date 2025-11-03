@@ -33,8 +33,8 @@ public class ConfigLoader {
         }
     }
 
-    public Map<String, DatabaseConfig> getDatabaseConfig() throws IllegalArgumentException, IOException {
-        Map<String, DatabaseConfig> config = new HashMap<>();
+    public Map<String, ValidateConfig> getDatabaseConfig() throws IllegalArgumentException, IOException {
+        Map<String, ValidateConfig> config = new HashMap<>();
 
         /*
         Nó thực hiện ba việc chính:
@@ -50,6 +50,7 @@ public class ConfigLoader {
                 .uri(getEnv("MONGO_URI"))
                 .dbName(getEnv("MONGO_DB_NAME"))
                 .jarPath(getEnv("MONGO_JAR_PATH"))
+                .collection(getEnv("MONGO_COLLECTION"))
                 .build()
         );
 
@@ -66,6 +67,8 @@ public class ConfigLoader {
                 .password(getEnv("MYSQL_PASSWORD"))
                 .database(getEnv("MYSQL_DATABASE"))
                 .jarPath(getEnv("MYSQL_JAR_PATH"))
+                .tableUsers(getEnv("MYSQL_TABLE_USERS"))
+                .tableRepositories(getEnv("MYSQL_TABLE_REPOS"))
                 .build()
         );
 
@@ -88,6 +91,24 @@ public class ConfigLoader {
         return config;
     }
 
+    public Map<String, ValidateConfig> getKafkaConfig() throws IllegalArgumentException, IOException {
+        Map<String, ValidateConfig> config = new HashMap<>();
+        KafkaConfig kafkaConfig = new KafkaConfig(getEnv("KAFKA_SERVER"), getEnv("KAFKA_TOPIC"), getEnv("KAFKA_GROUP_ID"));
+        /*
+        Nó thực hiện ba việc chính:
+
+        Thêm một mục cấu hình vào map (config.put).
+
+        Xây dựng đối tượng cấu hình KafkaConfig bất biến.
+
+        Lấy các giá trị cấu hình từ nguồn bên ngoài (getEnv).
+         */
+
+        // Cấu hình Kafka
+        config.put("kafka", kafkaConfig);
+        return config;
+    }
+
     // Hàm main để chạy thử nghiệm
     public static void main(String[] args) {
         try {
@@ -97,7 +118,7 @@ public class ConfigLoader {
             ConfigLoader loader = new ConfigLoader(source);
 
             // Bước 3: Tải cấu hình,tạo thành dict
-            Map<String, DatabaseConfig> dbConfig = loader.getDatabaseConfig();
+            Map<String, ValidateConfig> dbConfig = loader.getDatabaseConfig();
 
             System.out.println("Tải cấu hình thành công!");
             System.out.println("-------------------------");
