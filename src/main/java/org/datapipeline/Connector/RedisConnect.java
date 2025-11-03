@@ -1,8 +1,6 @@
 package org.datapipeline.Connector;
 import org.datapipeline.Config.*;
-import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.Map;
@@ -177,10 +175,10 @@ public class RedisConnect implements AutoCloseable {
             ConfigLoader loader = new ConfigLoader(source);
 
             // 2. Tải tất cả cấu hình DB
-            Map<String, DatabaseConfig> dbConfigMap = loader.getDatabaseConfig();
+            Map<String, ValidateConfig> dbConfigMap = loader.getDatabaseConfig();
 
             // 3. Lấy cấu hình Redis và ép kiểu
-            DatabaseConfig redisBase = dbConfigMap.get("redis");
+            ValidateConfig redisBase = dbConfigMap.get("redis");
             if (redisBase == null) {
                 throw new IllegalStateException("Redis config not found in database configurations.");
             }

@@ -1,26 +1,30 @@
 package org.datapipeline.Connector;
 
-import org.datapipeline.Config.*;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Map;
+
+// Bỏ các import không cần thiết (DriverManager)
 
 /**
- * Lớp kết nối và quản lý MongoDB Session.
- * Triển khai AutoCloseable để mô phỏng Python Context Manager (with... as...).
+ * Lớp quản lý Connection Pool cho MySQL bằng HikariCP.
+ * Triển khai AutoCloseable để đóng Pool khi ứng dụng tắt.
  */
 public class MySQLConnect implements AutoCloseable {
+
+    // Sử dụng static volatile để đảm bảo Pool là Singleton và thread-safe
+    private static volatile HikariDataSource dataSource = null;
+    private static final Object lock = new Object(); // Đối tượng khóa cho đồng bộ hóa
 
     private final String host;
     private final int port;
     private final String user;
     private final String password;
 
-    private Connection connection;
-    private Statement statement;
+    // Loại bỏ biến 'connection' và 'statement' instance
 
     // Constructor Private: Chỉ được gọi bởi Builder
     public MySQLConnect(Builder builder) {
@@ -31,7 +35,9 @@ public class MySQLConnect implements AutoCloseable {
     }
 
     // Phương thức tĩnh để bắt đầu Builder
-    public static Builder builder() {return new Builder();}
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static class Builder {
         private String host;
@@ -39,133 +45,101 @@ public class MySQLConnect implements AutoCloseable {
         private String user;
         private String password;
 
-        public Builder host(String host) {this.host = host;return this;}
-        public Builder port(int port) {this.port = port;return this;}
-        public Builder user(String user) {this.user = user;return this;}
-        public Builder password(String password) {this.password = password;return this;}
+        public Builder host(String host) { this.host = host; return this; }
+        public Builder port(int port) { this.port = port; return this; }
+        public Builder user(String user) { this.user = user; return this; }
+        public Builder password(String password) { this.password = password; return this; }
 
         public MySQLConnect build() {
             if (host == null || port == null || user == null || password == null) {
                 throw new IllegalStateException("MySQL config requires host, port, user, and password.");
             }
-            return new MySQLConnect(this);
+            MySQLConnect instance = new MySQLConnect(this);
+            instance.initializePool(); // Khởi tạo Pool khi đối tượng được xây dựng lần đầu
+            return instance;
+        }
+    }
+
+    // Logic khởi tạo Pool (Chỉ chạy một lần duy nhất)
+    private void initializePool() {
+        if (dataSource == null) {
+            synchronized (lock) {
+                if (dataSource == null) {
+                    HikariConfig config = new HikariConfig();
+
+                    // LƯU Ý QUAN TRỌNG: Nếu bạn đã xác định database (ví dụ: github_data)
+                    // trong DataTrigger, hãy thêm nó vào URL để loại bỏ lệnh USE.
+                    // Ví dụ: String jdbcUrl = String.format("jdbc:mysql://%s:%d/github_data", host, port);
+                    String jdbcUrl = String.format("jdbc:mysql://%s:%d", host, port);
+
+                    config.setJdbcUrl(jdbcUrl);
+                    config.setUsername(user);
+                    config.setPassword(password);
+
+                    // Cấu hình Pool cơ bản để tối ưu cho ứng dụng chạy dài
+                    config.setMinimumIdle(5); // Số lượng kết nối nhàn rỗi tối thiểu
+                    config.setMaximumPoolSize(20); // Số lượng kết nối tối đa
+                    config.setConnectionTimeout(30000); // 30 giây chờ lấy kết nối
+                    config.setIdleTimeout(600000); // 10 phút timeout cho kết nối nhàn rỗi
+                    config.setMaxLifetime(1800000); // 30 phút là thời gian sống tối đa của một kết nối
+
+                    config.setAutoCommit(false);
+
+                    dataSource = new HikariDataSource(config);
+                    System.out.println("--------------------MySQL Connection Pool (HikariCP) Initialized------------------");
+                }
+            }
         }
     }
 
     /**
-     * Thiết lập kết nối đến MongoDB và trả về đối tượng MongoDatabase.
-     * Tương đương với phương thức connect() trong Python.
-     * @return MongoDatabase đã kết nối.
-     * @throws RuntimeException nếu kết nối thất bại.
+     * Lấy một kết nối từ Pool. Kết nối này sẽ được trả về Pool
+     * khi phương thức close() được gọi trên nó (thường là qua try-with-resources).
+     * @return Connection từ Pool.
      */
+    public Connection getConnection() throws SQLException {
+        if (dataSource == null) {
+            // Đây là lỗi nghiêm trọng, Pool chưa được khởi tạo
+            throw new SQLException("Connection Pool has not been initialized. Call build() first in your main method.");
+        }
+        // Kết nối được mượn từ Pool
+        return dataSource.getConnection();
+    }
+
+    // Phương thức này giờ đây là không an toàn trong môi trường Pooling và bị loại bỏ.
+    // Các Statement nên được tạo bên trong khối try-with-resources của hàm gọi.
+    public Statement getStatement() {
+        System.err.println("WARNING: getStatement() is deprecated in Connection Pooling environment. Use getConnection().createStatement() inside a try-with-resources block.");
+        return null;
+    }
+
+    // Các phương thức sau bị loại bỏ/thay đổi chức năng vì đã có Pooling:
+
+    // connect() giờ đây chỉ là một placeholder
     public void connect() {
-        if (this.connection != null && this.statement != null) {
-            System.out.println("--------------------Mysql is already connected------------------");
-            return;
-        }
-
-        String jdbcUrl = String.format("jdbc:mysql://%s:%d/?user=%s&password=%s",
-                host, port, user, password);
-
-        try{
-            // Bước 1: Thiết lập kết nối
-            this.connection = DriverManager.getConnection(jdbcUrl);
-
-            this.connection.setAutoCommit(false);
-
-            // Bước 2: Tạo đối tượng Statement (tương đương cursor)
-            this.statement = this.connection.createStatement();
-
-            System.out.println("--------------------Connected to Mysql------------------");
-        } catch (SQLException e) {
-            // SQLException là lỗi JDBC chuẩn khi kết nối thất bại
-            throw new RuntimeException("---------Can't connect to MySql: " + e.getMessage() + "-------------", e);
-        }
+        System.out.println("--------------------Pool is already initialized. Call getConnection() to borrow a Connection------------------");
     }
 
+    // disconnect() giờ đây là một placeholder
     public void disconnect() {
-        try {
-            if (this.statement != null) {
-                this.statement.close();
-                this.statement = null;
-            }
-            if (this.connection != null && !this.connection.isClosed()) {
-                this.connection.close();
-                this.connection = null;
-            }
-            System.out.println("---------------Mysql connection closed----------------------");
-        } catch (SQLException e) {
-            System.err.println("Error closing MySQL connection: " + e.getMessage());
-        }
+        System.out.println("--------------------Call close() to shut down the entire Pool when exiting the application----------------------");
     }
 
-    // Triển khai phương thức close() từ AutoCloseable.
-    // Cho phép sử dụng try-with-resources.
-    // Tương đương với __exit__ (tự động đóng khi thoát khối try).
-    // Tương đương với __enter__ (connect) được gọi thủ công trước try-with-resources.
-    // LƯU Ý: Nếu muốn connect tự động, hãy gọi connect() trong constructor.
-    // Ở đây, ta giữ connect() riêng để khớp với thiết kế Python gốc.
+    // reconnect() giờ đây là một placeholder
+    public void reconnect(){
+        System.out.println("--------------------Pool manages reconnections automatically----------------------");
+    }
+
+    /**
+     * Triển khai close() từ AutoCloseable.
+     * Phương thức này đóng toàn bộ Connection Pool (CHỈ KHI ỨNG DỤNG TẮT HẲN).
+     */
     @Override
     public void close() {
-        this.disconnect();
-    }
-
-    public void reconnect(){
-        this.disconnect();
-        this.connect();
-    }
-
-    /**
-     * Trả về đối tượng MongoDatabase đã kết nối.
-     */
-    public Connection getConnection() {
-        if (connection == null) connect();
-        return this.connection;
-    }
-
-    public Statement getStatement() {
-        if (statement == null) connect();
-        return this.statement;
-    }
-
-    public static void main(String[] args) {
-        MySQLConfig mySQLConfig;
-
-        try {
-            // 1. Khởi tạo nguồn cấu hình và Loader
-            // Cần đảm bảo có thư viện dotenv-java và file .env đã được setup
-            ConfigurationSource source = new EnvironmentSource();
-            ConfigLoader loader = new ConfigLoader(source);
-
-            // 2. Tải tất cả cấu hình DB
-            Map<String, DatabaseConfig> dbConfigMap = loader.getDatabaseConfig();
-
-            // 3. Lấy cấu hình MySQL và ép kiểu
-            DatabaseConfig mysqlBase = dbConfigMap.get("mysql");
-            if (mysqlBase == null) {
-                throw new IllegalStateException("MySQL config not found in database configurations.");
-            }
-            mySQLConfig = (MySQLConfig) mysqlBase;
-        } catch (Exception e) {
-            System.err.println("LỖI CẤU HÌNH BAN ĐẦU: " + e.getMessage());
-            return; // Dừng chương trình nếu không tải được cấu hình
-        }
-
-        try (MySQLConnect mysql = MySQLConnect.builder()
-                .host(mySQLConfig.getHost())
-                .port(mySQLConfig.getPort())
-                .user(mySQLConfig.getUser())
-                .password(mySQLConfig.getPassword())
-                .build()) {
-            mysql.connect();
-
-            // Thực hiện truy vấn (ví dụ: tạo Statement/Cursor)
-            Statement stmt = mysql.getStatement();
-            System.out.println("Status: Statement (Cursor) created successfully.");
-            System.out.println("Sẵn sàng thao tác với DB: " + mySQLConfig.getDatabase());
-        } catch (RuntimeException e) {
-            // Bắt lỗi kết nối/SQL
-            System.err.println("LỖI KẾT NỐI/SQL: " + e.getMessage());
+        if (dataSource != null) {
+            dataSource.close();
+            dataSource = null;
+            System.out.println("--------------------MySQL Connection Pool Shut Down Successfully----------------------");
         }
     }
 }

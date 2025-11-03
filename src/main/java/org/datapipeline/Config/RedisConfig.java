@@ -1,6 +1,6 @@
 package org.datapipeline.Config;
 
-public class RedisConfig extends DatabaseConfig {
+public class RedisConfig extends ValidateConfig {
     private final String host;
     private final int port;
     private final String user;

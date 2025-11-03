@@ -93,7 +93,7 @@ public class SparkConnect {
             // Lưu ý: "spark.jars" thường dùng cho file cục bộ, "spark.jars.packages"
             // dùng cho các tọa độ Maven. Ta dùng spark.jars để khớp với cách nối chuỗi của Python
             String jarsPath = jars.stream().collect(Collectors.joining(","));
-            builder.config("spark.jars", jarsPath);
+            builder.config("spark.jar.packages", jarsPath);
         }
 
         // --- Cấu hình tùy chỉnh ---

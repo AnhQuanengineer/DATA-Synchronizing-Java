@@ -7,7 +7,7 @@ import java.lang.reflect.Modifier;
  * Lớp trừu tượng cơ sở, chứa logic kiểm tra hợp lệ bằng Reflection.
  * (Mặc dù Builder đã kiểm tra, nhưng đây là một lớp phòng thủ bổ sung).
  */
-public abstract class DatabaseConfig {
+public abstract class ValidateConfig {
 
     /*
     Tôi vẫn giữ validate() này và gọi nó ở cuối constructor của các lớp cấu hình (new

@@ -7,7 +7,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.bson.conversions.Bson;
-import org.datapipeline.Config.DatabaseConfig;
+import org.datapipeline.Config.ValidateConfig;
 import org.datapipeline.Config.MongoDBConfig;
 import org.datapipeline.Config.MySQLConfig;
 import org.datapipeline.Connector.MongoDBConnect;
@@ -27,9 +27,9 @@ public class SparkWriteData {
     private static final String DEFAULT_DATABASE_NAME = "github_data";
 
     private final SparkSession spark;
-    private final Map<String, DatabaseConfig> sparkConfig;
+    private final Map<String, ValidateConfig> sparkConfig;
 
-    public SparkWriteData(SparkSession spark, Map<String, DatabaseConfig> sparkConfig) {
+    public SparkWriteData(SparkSession spark, Map<String, ValidateConfig> sparkConfig) {
         this.spark = spark;
         this.sparkConfig = sparkConfig;
     }
@@ -370,32 +370,32 @@ public class SparkWriteData {
         cleanupTempColumn(collectionName, mongoConfig);
     }
 
-    public void writeAllDatabase(Dataset<Row> dfWrite, String collectionNameOrTableName, String mode) {
+    public void writeAllDatabase(Dataset<Row> dfWrite, String collectionName, String tableName, String mode) {
 
         if (dfWrite == null || dfWrite.isEmpty()) {
             LOG.warn("DataFrame rỗng hoặc null → bỏ qua ghi vào tất cả database");
             return;
         }
         try {
-            this.sparkWriteMySQL(dfWrite, collectionNameOrTableName, mode);
-            this.sparkWriteMongoDB(dfWrite, collectionNameOrTableName, mode);
-            LOG.info("Write success to all databases: MySQL table '{}' và MongoDB collection '{}'", collectionNameOrTableName, collectionNameOrTableName);
+            this.sparkWriteMySQL(dfWrite, collectionName, mode);
+            this.sparkWriteMongoDB(dfWrite, tableName, mode);
+            LOG.info("Write success to all databases: MySQL table '{}' và MongoDB collection '{}'", collectionName, tableName);
         } catch (Exception e) {
             LOG.error("GHI Data THẤT BẠI ", e);
             throw new RuntimeException("Ghi dữ liệu ", e);
         }
     }
 
-    public void valdateAllDatabase(Dataset<Row> dfWrite, String collectionNameOrTableName, String mode) {
+    public void valdateAllDatabase(Dataset<Row> dfWrite, String collectionName, String tableName, String mode) {
         if (dfWrite == null || dfWrite.isEmpty()) {
             LOG.warn("DataFrame rỗng hoặc null → bỏ qua ghi vào tất cả database");
             return;
         }
 
         try {
-            this.validateSparkMySQL(dfWrite, collectionNameOrTableName, mode);
-            this.validateSparkMongoDB(dfWrite, collectionNameOrTableName, mode);
-            LOG.info("Validate success to all databases: MySQL table '{}' và MongoDB collection '{}'", collectionNameOrTableName, collectionNameOrTableName);
+            this.validateSparkMySQL(dfWrite, collectionName, mode);
+            this.validateSparkMongoDB(dfWrite, tableName, mode);
+            LOG.info("Validate success to all databases: MySQL table '{}' và MongoDB collection '{}'", collectionName, tableName);
         } catch (Exception e) {
             LOG.error("Validate Data THẤT BẠI ", e);
             throw new RuntimeException("Validate dữ liệu ", e);

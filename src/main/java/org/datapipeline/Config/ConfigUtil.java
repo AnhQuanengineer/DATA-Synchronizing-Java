@@ -3,10 +3,7 @@ package org.datapipeline.Config;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.datapipeline.Config.DatabaseConfig;
 // Giả định bạn có các lớp cấu hình đã chuyển đổi từ câu hỏi trước:
-import org.datapipeline.Config.MongoDBConfig;
-import org.datapipeline.Config.MySQLConfig;
 
 
 /**
@@ -25,7 +22,7 @@ public class ConfigUtil {
         // Bước 2: Inject nguồn cấu hình vào loader
         ConfigLoader loader = new ConfigLoader(source);
 
-        Map<String, DatabaseConfig> dbConfigs = loader.getDatabaseConfig(); // Lấy cấu hình DB từ ConfigLoader
+        Map<String, ValidateConfig> dbConfigs = loader.getDatabaseConfig(); // Lấy cấu hình DB từ ConfigLoader
 
         Map<String, Object> sparkConfig = new HashMap<>();
 

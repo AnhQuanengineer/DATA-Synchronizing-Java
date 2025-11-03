@@ -148,10 +148,10 @@ public class MongoDBConnect implements AutoCloseable {
             ConfigLoader loader = new ConfigLoader(source);
 
             // 2. Tải tất cả cấu hình DB
-            Map<String, DatabaseConfig> dbConfigMap = loader.getDatabaseConfig();
+            Map<String, ValidateConfig> dbConfigMap = loader.getDatabaseConfig();
 
             // 3. Lấy cấu hình MongoDB và ép kiểu
-            DatabaseConfig mongoBase = dbConfigMap.get("mongodb");
+            ValidateConfig mongoBase = dbConfigMap.get("mongodb");
             if (mongoBase == null) {
                 throw new IllegalStateException("MongoDB config not found in database configurations.");
             }
