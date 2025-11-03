@@ -1,6 +1,6 @@
 package org.datapipeline.Config;
 
-public class MySQLConfig extends DatabaseConfig {
+public class MySQLConfig extends ValidateConfig {
     private final String host;
     private final int port;
     private final String user;
@@ -8,8 +8,8 @@ public class MySQLConfig extends DatabaseConfig {
     private final String database;
     private final String jarPath;
 
-    private final String tableUsers = "Users";
-    private final String tableRepositories = "Repositories";
+    private final String tableUsers;
+    private final String tableRepositories;
 
     private MySQLConfig(Builder builder) {
         this.host = builder.host;
@@ -18,6 +18,8 @@ public class MySQLConfig extends DatabaseConfig {
         this.password = builder.password;
         this.database = builder.database;
         this.jarPath = builder.jarPath;
+        this.tableUsers = builder.tableUsers;
+        this.tableRepositories = builder.tableRepositories;
         super.validate();
     }
 
@@ -32,6 +34,8 @@ public class MySQLConfig extends DatabaseConfig {
         private String password;
         private String database;
         private String jarPath;
+        private String tableUsers = "Users";
+        private String tableRepositories = "Repositories";
 
         public Builder host(String host) { this.host = host; return this; }
         // Port được nhận là int, nhưng lưu vào Integer để kiểm tra null trong build()
@@ -40,6 +44,8 @@ public class MySQLConfig extends DatabaseConfig {
         public Builder password(String password) { this.password = password; return this; }
         public Builder database(String database) { this.database = database; return this; }
         public Builder jarPath(String jarPath) { this.jarPath = jarPath; return this; }
+        public Builder tableUsers(String tableUsers) { this.tableUsers = tableUsers; return this; }
+        public Builder tableRepositories(String tableRepositories) { this.tableRepositories = tableRepositories; return this; }
 
         public MySQLConfig build() {
             if (host == null || port == null || user == null || password == null || database == null) {

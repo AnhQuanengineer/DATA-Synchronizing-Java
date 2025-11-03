@@ -11,14 +11,13 @@ import org.datapipeline.Utils.SchemaManager;
 import org.datapipeline.Config.ConfigLoader;
 import org.datapipeline.Config.ConfigurationSource;
 import org.datapipeline.Config.EnvironmentSource;
-import org.datapipeline.Config.DatabaseConfig;
+import org.datapipeline.Config.ValidateConfig;
 import org.datapipeline.Config.MongoDBConfig;
 import org.datapipeline.Config.MySQLConfig;
 import org.datapipeline.Config.RedisConfig;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.Map;
 
 /**
@@ -34,7 +33,7 @@ public class DataSchemaInitializer {
     một biến có kiểu Lớp Cha (DatabaseConfig) có thể chứa một tham chiếu đến bất kỳ đối tượng nào là Lớp Con của nó
      */
     // Hàm thực hiện logic chính (tương đương def main(Config):)
-    public static void initializeSchemas(Map<String, DatabaseConfig> ConfigMap) {
+    public static void initializeSchemas(Map<String, ValidateConfig> ConfigMap) {
 
         // Lấy cấu hình cụ thể
         MongoDBConfig mongoConfig = (MongoDBConfig) ConfigMap.get("mongodb");
@@ -69,7 +68,7 @@ public class DataSchemaInitializer {
                     .append("avatar_url", "https://avatars.githubusercontent.com/u/9614759?")
                     .append("url", "https://api.github.com/users/GoogleCodeExporter");
 
-            db.getCollection("Users").insertOne(userData);
+            db.getCollection(mongoConfig.getCollection()).insertOne(userData);
             System.out.println("------------Inserted to MongoDB----------------");
 
             // 4. Validate Schema
@@ -146,7 +145,7 @@ public class DataSchemaInitializer {
         System.out.println(">>> KHỞI TẠO SCHEMA DỮ LIỆU <<<");
 
         // BƯỚC 1: Tải cấu hình từ môi trường
-        Map<String, DatabaseConfig> Config;
+        Map<String, ValidateConfig> Config;
         try {
             ConfigurationSource source = new EnvironmentSource();
             ConfigLoader loader = new ConfigLoader(source);

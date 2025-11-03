@@ -7,10 +7,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import static org.apache.spark.sql.functions.*;
 
-import org.datapipeline.Config.ConfigLoader;
-import org.datapipeline.Config.ConfigurationSource;
-import org.datapipeline.Config.DatabaseConfig;
-import org.datapipeline.Config.EnvironmentSource;
+import org.datapipeline.Config.*;
 import org.datapipeline.Connector.SparkConnect;
 
 import java.io.FileNotFoundException;
@@ -106,7 +103,7 @@ public class SparkMain {
         );
         repoWriteTableDs.show();
 
-        Map<String, DatabaseConfig> Config;
+        Map<String, ValidateConfig> Config;
         try {
             ConfigurationSource source = new EnvironmentSource();
             ConfigLoader loader = new ConfigLoader(source);
@@ -117,11 +114,14 @@ public class SparkMain {
             return;
         }
 
+        MongoDBConfig mongoConfig = (MongoDBConfig) Config.get("mongodb");
+        MySQLConfig mySQLConfig = (MySQLConfig) Config.get("mysql");
+
         SparkWriteData writeDataMySQL= new SparkWriteData(sparkConnect.getSparkSession(), Config);
-        writeDataMySQL.writeAllDatabase(userWriteTableDs, "Users", "append");
+        writeDataMySQL.writeAllDatabase(userWriteTableDs, mongoConfig.getCollection(), mySQLConfig.getTableUsers(), "append");
 
         SparkWriteData validateDataMySQL= new SparkWriteData(sparkConnect.getSparkSession(), Config);
-        validateDataMySQL.valdateAllDatabase(userWriteTableDs, "Users", "append");
+        validateDataMySQL.valdateAllDatabase(userWriteTableDs, mongoConfig.getCollection(), mySQLConfig.getTableUsers(), "append");
 
         sparkConnect.stop();
     }
